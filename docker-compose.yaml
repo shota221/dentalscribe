@@ -1,0 +1,24 @@
+name: ${APP_NAME}
+services:
+  app:
+    build:
+      context: .
+      dockerfile: ./infra/Dockerfile
+      args:
+        APP_NAME: ${APP_NAME}
+    ports:
+      - "${APP_PORT}:8000"
+    volumes:
+      - ./src:/app
+    tty: true
+    stdin_open: true
+    environment:
+      APP_NAME: ${APP_NAME}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION}     
+    logging:
+      options:
+        max-size: "1m"
+        max-file: "1" 
+      driver: json-file

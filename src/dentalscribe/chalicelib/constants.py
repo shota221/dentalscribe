@@ -1,0 +1,6 @@
+TRANSCRIBE_DESTINATION_FILENAME = "transcript.json"
+PARENT_JOB_ID_NONE = "NONE"
+STORAGE_KEY_PREFIX = "storage/"
+TRANSCRIPTION_SOURCE_KEY_PREFIX = "transcription/source/"
+TRANSCRIPTION_DESTINATION_KEY_PREFIX = "transcription/destination/"
+

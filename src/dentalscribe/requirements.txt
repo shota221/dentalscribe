@@ -1,0 +1,6 @@
+aws_lambda_powertools
+boto3
+botocore
+fastjsonschema
+numpy
+PyJWT
