@@ -1,6 +1,5 @@
 from chalicelib.services.job import JobService
 from chalicelib.services.storage import StorageService
-from chalicelib.services.voice2soap import Voice2SoapService
 
 class ServiceContainer:
     _storage_service = None
@@ -19,9 +18,3 @@ class ServiceContainer:
         if cls._job_service is None:
             cls._job_service = JobService()
         return cls._job_service
-
-    @classmethod
-    def get_voice2soap_service(cls):
-        if cls._voice2soap_service is None:
-            cls._voice2soap_service = Voice2SoapService()
-        return cls._voice2soap_service

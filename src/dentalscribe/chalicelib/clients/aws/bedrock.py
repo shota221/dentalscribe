@@ -14,7 +14,6 @@ class BedrockClient(BaseAWSClient):
         max_retries: Optional[int] = None,
         retry_mode: Optional[str] = None,
         text_model_id: Optional[str] = None,
-        embedding_model_id: Optional[str] = None,
     ):
         super().__init__(
             service_name="bedrock-runtime",
@@ -26,8 +25,7 @@ class BedrockClient(BaseAWSClient):
         self.embedding_client = boto3.client(
             "bedrock-runtime", config=self.embedding_config
         )
-        self.text_model_id = text_model_id or AppConfig.get_aws_config()["BEDROCK_TEXT_MODEL_ID"]
-        self.embedding_model_id = embedding_model_id or AppConfig.get_aws_config()["BEDROCK_EMBEDDING_MODEL_ID"]
+        self.text_model_id = text_model_id or AppConfig.get_aws_config()["BEDROCK_MODEL_ID"]
 
     def get_embedding_region(self):
         return self.embedding_config.region_name

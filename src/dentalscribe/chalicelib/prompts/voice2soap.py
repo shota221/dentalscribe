@@ -1,12 +1,13 @@
 from chalicelib.prompts.base import BasePrompt
+from chalicelib.constants import BEDROCK_JSON_DELIMITER
 
 class Voice2SoapPrompt(BasePrompt):
     def __init__(self):
-        template = """
+        template = f"""
 あなたは歯科医療の専門知識を持つアシスタントです。
 以下voice_recordタグ内の歯科医師の診察記録をSOAP形式で整理してください。
 
-<voice_record>{voice_record}</voice_record>
+<voice_record>{{voice_record}}</voice_record>
 
 【重要な処理ルール】
 1. この文章は音声ファイルの文字起こし結果です
@@ -45,7 +46,13 @@ class Voice2SoapPrompt(BasePrompt):
 ※ 音声認識の不備により情報が不完全な場合は、その旨を明記してください
 
 最後にjsonスキーマを<schema>タグ内でお渡しします。このスキーマに正確に従って、json形式で分割結果を出力してください。
-<schema>{schema}</schema>
+JSON結果は必ず{BEDROCK_JSON_DELIMITER}で囲んで出力してください。
+
+<schema>{{schema}}</schema>
+
+{BEDROCK_JSON_DELIMITER}
+ここにJSON結果を出力
+{BEDROCK_JSON_DELIMITER}
 """
         super().__init__(template)
         

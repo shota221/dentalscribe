@@ -22,3 +22,23 @@ if [ $DEPLOY_STATUS -ne 0 ]; then
 fi
 
 echo "Deployment process completed successfully."
+
+# devまたはstg環境の場合、最新のZIPファイルを削除
+if [ "$ENV" == "dev" ] || [ "$ENV" == "stg" ]; then
+    echo "Cleaning up deployment artifacts for $ENV environment..."
+    
+    # 最新のZIPファイルを検索して削除
+    LATEST_ZIP=$(docker compose exec app find .chalice/deployments -name "*.zip" -type f -printf '%T@ %p\n' | sort -nr | head -1 | cut -d' ' -f2-)
+    
+    if [ -n "$LATEST_ZIP" ]; then
+        echo "Removing latest deployment ZIP: $LATEST_ZIP"
+        docker compose exec app rm "$LATEST_ZIP"
+        echo "Cleanup completed."
+    else
+        echo "No deployment ZIP files found."
+    fi
+else
+    echo "Skipping artifact cleanup for $ENV environment."
+fi
+
+echo "Deployment process completed successfully."

@@ -35,8 +35,7 @@ def get_voice2soap_job(job_id):
 
 @app.on_s3_event(bucket=environ["S3_BUCKET"], events=["s3:ObjectCreated:*"], prefix=TRANSCRIPTION_DESTINATION_KEY_PREFIX, suffix=TRANSCRIBE_DESTINATION_FILENAME)
 def on_s3_transcribe_destination_object_created(event):
-    logger.info("Object created in S3: %s", event.key)
-    # ここで必要な処理を実行
+    ServiceContainer.get_job_service().complete_transcribe_job(event.key)
 
 ######################
 # sqs event handlers #

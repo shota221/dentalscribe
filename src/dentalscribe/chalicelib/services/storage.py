@@ -44,28 +44,21 @@ class StorageService:
             '.webm': 'audio/webm'
         }
         
-        # ファイル拡張子の検証
         file_extension = os.path.splitext(filename)[1].lower()
         if not file_extension or file_extension not in valid_extensions:
             raise ValidationError(f"Invalid file extension: {file_extension}. Supported extensions are: {', '.join(valid_extensions)}")
 
 
-        # ユニークなupload_idを生成
         upload_id = f"upload-{uuid.uuid4()}"
         
-        # S3キーを生成: transcription/source/{upload_id}.{ext}
         s3_key = f"{TRANSCRIPTION_SOURCE_KEY_PREFIX}{upload_id}{file_extension}"
         
-        # Content-Typeを決定
         content_type = content_type_map.get(file_extension, 'application/octet-stream')
         
-        # S3クライアントを初期化
         s3_client = S3Client()
         
-        # バケット名を設定から取得
         bucket_name = self.aws_config['S3_BUCKET']
         
-        # presigned URLを生成（1時間の有効期限）
         expiration = 3600
         presigned_url = s3_client.generate_upload_url(
             bucket=bucket_name,

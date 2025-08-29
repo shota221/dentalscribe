@@ -41,6 +41,20 @@ class S3Client(BaseAWSClient):
         obj = self.client.get_object(Bucket=bucket, Key=key)
         return obj["Body"].read()
     
+    def get_object_content(self, bucket, key):
+        """
+        指定されたバケットとキーのオブジェクトの内容を文字列として返す
+        
+        Parameters:
+        bucket (str): S3バケット名
+        key (str): オブジェクトのキー
+        
+        Returns:
+        str: オブジェクトの内容（UTF-8デコード済み）
+        """
+        obj = self.client.get_object(Bucket=bucket, Key=key)
+        return obj["Body"].read().decode('utf-8')
+    
     def get_object_size(self, bucket, key):
         """
         指定されたバケットとキーのオブジェクトのサイズをバイト単位で返す

@@ -46,21 +46,6 @@
 				"transcribe:DeleteTranscriptionJob"
 			],
 			"Resource": "*"
-		},
-		{
-			"Effect": "Allow",
-			"Action": "translate:*",
-			"Resource": "*"
-		},
-		{
-			"Effect": "Allow",
-			"Action": "iam:PassRole",
-			"Resource": "arn:aws:iam::438465136655:role/raglab-chat-dev-translate_s3_access_role",
-			"Condition": {
-				"StringEquals": {
-					"iam:PassedToService": "translate.amazonaws.com"
-				}
-			}
 		}
 	]
 }

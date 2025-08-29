@@ -5,10 +5,18 @@ class CreateVoice2SoapJobSchema(BaseSchema):
     schema = {
         "$schema": "http://json-schema.org/draft-07/schema",
         "type": "object",
-        "required": ["source_s3_key"],
+        "anyOf": [
+            {"required": ["upload_id"]},
+            {"required": ["source_s3_key"]}
+        ],
         "properties": {
+            "upload_id": {
+                "type": "string",
+                "description": "Upload ID from storage service"
+            },
             "source_s3_key": {
-                "type": "string"
+                "type": "string",
+                "description": "Direct S3 key to the voice file"
             }
         }
     }
