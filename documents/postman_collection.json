@@ -1,0 +1,232 @@
+{
+  "info": {
+    "name": "音声入力→SOAP変換API",
+    "description": "歯科医師の診察記録音声をSOAP形式に変換するAPI",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://uopem2ywhe.execute-api.ap-northeast-1.amazonaws.com/stg",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Get Voice Upload URL",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// レスポンスからupload_idとpresigned_urlを環境変数に保存",
+              "if (pm.response.code === 200) {",
+              "    const response = pm.response.json();",
+              "    pm.environment.set('upload_id', response.upload_id);",
+              "    pm.environment.set('presigned_url', response.presigned_url);",
+              "    pm.environment.set('s3_key', response.s3_key);",
+              "    console.log('Upload ID:', response.upload_id);",
+              "    console.log('Presigned URL:', response.presigned_url);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/storages/voice-upload-url?filename=audio-sample.wav",
+          "host": ["{{base_url}}"],
+          "path": ["storages", "voice-upload-url"],
+          "query": [
+            {
+              "key": "filename",
+              "value": "audio-sample.wav",
+              "description": "アップロードする音声ファイル名（拡張子を含む）"
+            }
+          ]
+        },
+        "description": "音声ファイルアップロード用のpresigned URLを取得"
+      }
+    },
+    {
+      "name": "2. Upload Audio File",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// presigned_urlが設定されているかチェック",
+              "if (!pm.environment.get('presigned_url')) {",
+              "    throw new Error('presigned_url not found. Please run \"Get Voice Upload URL\" first.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "audio/wav",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "file",
+          "file": {
+            "src": "audio-sample.wav"
+          }
+        },
+        "url": {
+          "raw": "{{presigned_url}}",
+          "host": ["{{presigned_url}}"]
+        },
+        "description": "Step1で取得したpresigned URLを使用して音声ファイルをアップロード"
+      }
+    },
+    {
+      "name": "3. Create Voice2SOAP Job",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// レスポンスからjob_idを環境変数に保存",
+              "if (pm.response.code === 200) {",
+              "    const response = pm.response.json();",
+              "    pm.environment.set('job_id', response.job_id);",
+              "    console.log('Job ID:', response.job_id);",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// upload_idが設定されているかチェック",
+              "if (!pm.environment.get('upload_id')) {",
+              "    throw new Error('upload_id not found. Please run \"Get Voice Upload URL\" first.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"upload_id\": \"{{upload_id}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/jobs/voice2soap",
+          "host": ["{{base_url}}"],
+          "path": ["jobs", "voice2soap"]
+        },
+        "description": "音声→SOAP変換ジョブを作成"
+      }
+    },
+    {
+      "name": "4. Get Voice2SOAP Job Result",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// job_idが設定されているかチェック",
+              "if (!pm.environment.get('job_id')) {",
+              "    throw new Error('job_id not found. Please run \"Create Voice2SOAP Job\" first.');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// ステータスをチェックして結果を表示",
+              "if (pm.response.code === 200) {",
+              "    const response = pm.response.json();",
+              "    console.log('Status:', response.status);",
+              "    ",
+              "    if (response.status === 'completed') {",
+              "        console.log('=== TRANSCRIPTION ===');",
+              "        console.log(response.transcription_text);",
+              "        console.log('');",
+              "        console.log('=== SOAP DATA ===');",
+              "        console.log('Subjective:', response.soap_data.subjective);",
+              "        console.log('Objective:', response.soap_data.objective);",
+              "        console.log('Assessment:', response.soap_data.assessment);",
+              "        console.log('Plan:', response.soap_data.plan);",
+              "    } else if (response.status === 'failed') {",
+              "        console.log('Job failed. Please check the logs.');",
+              "    } else {",
+              "        console.log('Job is still processing. Please wait and try again.');",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/jobs/voice2soap/{{job_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["jobs", "voice2soap", "{{job_id}}"]
+        },
+        "description": "音声→SOAP変換の結果を取得"
+      }
+    },
+    {
+      "name": "Alternative: Create Job with S3 Key",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// レスポンスからjob_idを環境変数に保存",
+              "if (pm.response.code === 200) {",
+              "    const response = pm.response.json();",
+              "    pm.environment.set('job_id', response.job_id);",
+              "    console.log('Job ID:', response.job_id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"source_s3_key\": \"transcription/source/your-file.wav\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/jobs/voice2soap",
+          "host": ["{{base_url}}"],
+          "path": ["jobs", "voice2soap"]
+        },
+        "description": "S3キーを直接指定してジョブを作成（アップロードプロセスをスキップ）"
+      }
+    }
+  ]
+}

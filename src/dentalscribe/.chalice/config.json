@@ -50,6 +50,39 @@
           "lambda_memory_size": 2048
         }
       }
+    },
+    "stg": {
+      "autogen_policy": false,
+      "iam_policy_file": "policy-stg.json",
+      "api_gateway_stage": "stg",
+      "environment_variables": {
+        "APP_ENV": "stg",
+        "APP_NAME": "dentalscribe-stg",
+        "AUTHORIZER_LAMBDA_ARN": "",
+        "BEDROCK_REGION": "ap-northeast-1",
+        "BEDROCK_MODEL_ID": "apac.anthropic.claude-sonnet-4-20250514-v1:0",
+        "S3_BUCKET": "stg-aiyu-bucket",
+        "DYNAMODB_JOB_TABLE": "stg-aiyu-jobs",
+        "DYNAMODB_DELETED_DOCUMENT_TTL_SECONDS": "86400",
+        "DYNAMODB_JOB_TTL_SECONDS": "86400",
+        "DYNAMODB_USAGE_TTL_SECONDS": "259200",
+        "SQS_JOB_QUEUE": "stg-aiyu-job-standard",
+        "SQS_JOB_FAILED_QUEUE": "stg-aiyu-job-failed"
+      },
+      "lambda_memory_size": 2048,
+      "lambda_functions": {
+        "on_sqs_message": {
+          "lambda_timeout": 900,
+          "lambda_memory_size": 2048
+        },
+        "on_sqs_message_failed": {
+          "lambda_timeout": 300
+        },
+        "on_s3_transcribe_destination_object_created": {
+          "lambda_timeout": 900,
+          "lambda_memory_size": 2048
+        }
+      }
     }
   }
 }
