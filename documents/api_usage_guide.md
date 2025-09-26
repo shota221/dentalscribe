@@ -26,7 +26,7 @@ GET /storages/voice-upload-url?filename=your-audio-file.wav
 **対応ファイル形式:**
 - `.mp3`, `.mp4`, `.m4a`, `.wav`, `.flac`, `.amr`, `.ogg`, `.webm`
 
-**レスポンス例:**
+**レスポンス例:** （有効期限 `expires_in` は環境変数 `UPLOAD_URL_EXPIRES_IN` で設定。デフォルト3600秒）
 ```json
 {
   "upload_id": "upload-20250829-123456",
@@ -37,6 +37,38 @@ GET /storages/voice-upload-url?filename=your-audio-file.wav
   "original_filename": "your-audio-file.wav"
 }
 ```
+
+### 1-β. ダウンロード用URL取得（新規）
+
+アップロード済み音声ファイルを再取得 / 再生するための一時的なダウンロード用 presigned URL を取得します。
+
+```http
+GET /storages/voice-download-url?upload_id={upload_id}
+```
+
+**クエリパラメータ:**
+- `upload_id` (必須): アップロード時に取得したID（例: `upload-xxxxxxxx-....`）
+
+**バリデーション:**
+- 形式: `^[A-Za-z0-9_\-]{8,64}$`
+- S3上に `transcription/source/{upload_id}` プレフィックスでオブジェクトが存在すること
+
+**レスポンス例:** （`expires_in` は `DOWNLOAD_URL_EXPIRES_IN` で設定。デフォルト300秒）
+```json
+{
+  "upload_id": "upload-20250829-123456",
+  "presigned_url": "https://bucket.s3.amazonaws.com/transcription/source/upload-20250829-123456.wav?X-Amz-Algorithm=AWS4-HMAC-SHA256&...",
+  "content_type": "audio/wav",
+  "size": 1234567,
+  "expires_in": 300,
+  "created_at": null
+}
+```
+
+**備考:**
+- `expires_in` は環境変数 `DOWNLOAD_URL_EXPIRES_IN` で設定（デフォルト: 300 秒 = 5分）
+- `created_at` は将来メタデータ管理導入時に付与予定（現状 `null`）
+- 同じ `upload_id` で何度でも取得可能（都度新しいURL）
 
 ### 2. 音声→SOAP変換ジョブ作成
 

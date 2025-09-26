@@ -18,10 +18,10 @@ class S3Client(BaseAWSClient):
                 return False
             raise e
         
-    def exists_dir(self, bucket, dir):
-        if dir and not dir.endswith("/"):
-            raise ValueError("dir must end with /")
-        response = self.list_objects(bucket, dir)
+    def exists_dir(self, bucket, directory):
+        if directory and not directory.endswith("/"):
+            raise ValueError("directory must end with /")
+        response = self.list_objects(bucket, directory)
         return len(response) > 0
 
     def list_objects(self, bucket, prefix=''):
@@ -75,8 +75,8 @@ class S3Client(BaseAWSClient):
             return response['ContentLength']
         except ClientError as e:
             if e.response["Error"]["Code"] == "404":
-                raise ValueError(f"Object with key '{key}' does not exist in bucket '{bucket}'")
-            raise e
+                raise ValueError(f"Object with key '{key}' does not exist in bucket '{bucket}'") from e
+            raise
     
     def get_text_object(self, bucket, key):
         obj = self.client.get_object(Bucket=bucket, Key=key)
@@ -139,6 +139,15 @@ class S3Client(BaseAWSClient):
             
         presigned_url = self.client.generate_presigned_url(
             "put_object",
+            Params=params,
+            ExpiresIn=expiration,
+        )
+        return presigned_url
+
+    def generate_download_url(self, bucket, key, expiration=300):
+        params = {"Bucket": bucket, "Key": key}
+        presigned_url = self.client.generate_presigned_url(
+            "get_object",
             Params=params,
             ExpiresIn=expiration,
         )

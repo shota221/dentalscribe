@@ -27,6 +27,8 @@ class AWSConfig(BaseConfig):
         """S3設定を取得"""
         return {
             "S3_BUCKET": cls._get_env_var("S3_BUCKET", required=True),
+            "UPLOAD_URL_EXPIRES_IN": cls._get_env_int("UPLOAD_URL_EXPIRES_IN", 3600),
+            "DOWNLOAD_URL_EXPIRES_IN": cls._get_env_int("DOWNLOAD_URL_EXPIRES_IN", 300),
         }
 
     @classmethod

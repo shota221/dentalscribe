@@ -197,7 +197,6 @@ class JobService:
 
 
 
-    @result_handler
     def handle_sqs_message(self, json_body: Dict[str, Any]) -> None:
         job_id = json_body["job_id"]
 
@@ -227,7 +226,6 @@ class JobService:
             raise e
 
 
-    @result_handler
     def handle_failed_sqs_message(self, json_body: Dict[str, Any]) -> None:
         job_id = json_body["job_id"]
         job = self.job_repository.find(job_id)

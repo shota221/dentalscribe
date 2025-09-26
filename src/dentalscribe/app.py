@@ -13,19 +13,25 @@ logger = logging.getLogger(__name__)
 
 app = Chalice(app_name='dentalscribe')
 
+api_key_required = environ.get("APP_ENV") != "dev"
+
 ######################
 # api                #
-######################
+######################  
 
-@app.route('/storages/voice-upload-url', methods=['GET'])
+@app.route('/storages/voice-upload-url', methods=['GET'], api_key_required=api_key_required)
 def get_voice_upload_url():
     return ServiceContainer.get_storage_service().get_voice_upload_url(app.current_request.query_params)
 
-@app.route('/jobs/voice2soap', methods=['POST'])
+@app.route('/storages/voice-download-url', methods=['GET'], api_key_required=api_key_required)
+def get_voice_download_url():
+    return ServiceContainer.get_storage_service().get_voice_download_url(app.current_request.query_params)
+
+@app.route('/jobs/voice2soap', methods=['POST'], api_key_required=api_key_required)
 def create_voice2soap_job():
     return ServiceContainer.get_job_service().create_voice2soap_job(app.current_request.json_body)
 
-@app.route('/jobs/voice2soap/{job_id}', methods=['GET'])
+@app.route('/jobs/voice2soap/{job_id}', methods=['GET'], api_key_required=api_key_required)
 def get_voice2soap_job(job_id):
     return ServiceContainer.get_job_service().get_voice2soap_job(job_id)
 

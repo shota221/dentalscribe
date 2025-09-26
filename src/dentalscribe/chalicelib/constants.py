@@ -4,4 +4,5 @@ STORAGE_KEY_PREFIX = "storage/"
 TRANSCRIPTION_SOURCE_KEY_PREFIX = "transcription/source/"
 TRANSCRIPTION_DESTINATION_KEY_PREFIX = "transcription/destination/"
 BEDROCK_JSON_DELIMITER = "###JSON###"
+UPLOAD_ID_REGEX = r"^[A-Za-z0-9_\-]{8,64}$"
 
