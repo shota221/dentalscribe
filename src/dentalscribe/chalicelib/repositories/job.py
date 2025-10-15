@@ -17,11 +17,18 @@ class JobRepository:
         )
     
     @staticmethod
-    def find_by_parent_job_id(parent_job_id: str) -> List[Dict[str, Any]]:
+    def find_by_parent_job_id(parent_job_id: str, job_type: Optional[JobType] = None) -> List[Job]:
         index_name = "parent_job_id-index"
-        return Job.filter(
+        raw_jobs = Job.filter(
             index_name, {"parent_job_id": {"S": parent_job_id}}
         )
+        
+        # job_typeでフィルタリングが必要な場合
+        if job_type is not None:
+            filtered_jobs = [job for job in raw_jobs if job.job_type == job_type]
+            return filtered_jobs
+        
+        return raw_jobs
     
     @staticmethod
     def increment_child_job_count(job_id: str, child_job_status: JobStatus):

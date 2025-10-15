@@ -46,33 +46,23 @@ class Voice2SoapJobHandler:
 
 
     def generate_soap(self, job: Job):
-        """Transcribe結果からSOAP形式のデータを生成"""
+        """複数のTranscribe結果からSOAP形式のデータを生成"""
         payload = json.loads(job.payload)
-        source_s3_key = payload.get("source_s3_key")
+        parent_job_id = payload.get("parent_job_id")
 
-        logger.info("Generating SOAP for source_s3_key: %s", source_s3_key)
+        logger.info("Generating SOAP for parent job: %s", parent_job_id)
 
         try:
-            # TranscribeのJSON結果を取得
-            bucket = self.aws_config['S3_BUCKET']
-            transcribe_result = self.s3_client.get_json_object(bucket, source_s3_key)
+            # 親ジョブの情報から複数のTranscribe結果を取得
+            combined_transcription = self._combine_transcribe_results(parent_job_id)
             
-            # TranscriptからテキストとConfidenceを抽出
-            results = transcribe_result.get('results', {})
-            transcripts = results.get('transcripts', [])
-            
-            if not transcripts:
-                raise ValueError("No transcription results found")
-            
-            transcription_text = transcripts[0].get('transcript', '')
-            
-            if not transcription_text.strip():
-                raise ValueError("Empty transcription text")
+            if not combined_transcription.strip():
+                raise ValueError("Empty combined transcription text")
                 
-            logger.info("Transcription text extracted, length: %d", len(transcription_text))
+            logger.info("Combined transcription text length: %d", len(combined_transcription))
             
             # BedrockでSOAP形式に変換
-            soap_data = self._generate_soap_with_bedrock(transcription_text)
+            soap_data = self._generate_soap_with_bedrock(combined_transcription)
             
             # ジョブ結果を更新
             job.result = json.dumps(soap_data)
@@ -87,7 +77,7 @@ class Voice2SoapJobHandler:
                 parent_job.job_status = JobStatus.COMPLETED
                 parent_job.updated_at = TimeUtil.now_str()
                 parent_job.result = json.dumps({
-                    "transcription_text": transcription_text,
+                    "transcription_text": combined_transcription,
                     "soap_data": soap_data
                 })
                 parent_job.save()
@@ -178,3 +168,79 @@ class Voice2SoapJobHandler:
         except Exception as e:
             logger.error("Failed to extract JSON from response: %s", e)
             raise ValueError(f"JSON extraction failed: {e}")
+
+    def _combine_transcribe_results(self, parent_job_id: str) -> str:
+        """親ジョブに紐づく全てのTranscribeジョブの結果を元のupload_ids順序で結合（成功したもののみ）"""
+        # 親ジョブの情報から元のupload_ids順序を取得
+        parent_job = self.job_repository.find(parent_job_id)
+        if not parent_job:
+            raise ValueError(f"Parent job not found: {parent_job_id}")
+        
+        parent_payload = json.loads(parent_job.payload)
+        original_upload_ids = parent_payload.get("upload_ids", [])
+        
+        if not original_upload_ids:
+            raise ValueError(f"No upload_ids found in parent job payload: {parent_job_id}")
+        
+        # 親ジョブに紐づく子ジョブ（Transcribeジョブ）を取得
+        child_jobs = self.job_repository.find_by_parent_job_id(parent_job_id, JobType.TRANSCRIBE)
+        
+        if not child_jobs:
+            raise ValueError(f"No transcribe child jobs found for parent job: {parent_job_id}")
+        
+        # upload_idをキーとしてジョブをマッピング
+        jobs_by_upload_id = {}
+        for child_job in child_jobs:
+            if child_job.job_status == JobStatus.COMPLETED:
+                child_payload = json.loads(child_job.payload)
+                upload_id = child_payload.get("upload_id")
+                if upload_id:
+                    jobs_by_upload_id[upload_id] = child_job
+        
+        # 元のupload_ids順序に従って文字起こし結果を結合
+        combined_texts = []
+        bucket = self.aws_config['S3_BUCKET']
+        successful_jobs = 0
+        failed_jobs = 0
+        
+        for upload_id in original_upload_ids:
+            if upload_id in jobs_by_upload_id:
+                child_job = jobs_by_upload_id[upload_id]
+                successful_jobs += 1
+                try:
+                    # 各Transcribeジョブの結果S3キーを構築
+                    transcribe_result_key = f"{TRANSCRIPTION_DESTINATION_KEY_PREFIX}{child_job.job_id}/{TRANSCRIBE_DESTINATION_FILENAME}"
+                    
+                    # TranscribeのJSON結果を取得
+                    transcribe_result = self.s3_client.get_json_object(bucket, transcribe_result_key)
+                    
+                    # TranscriptからテキストとConfidenceを抽出
+                    results = transcribe_result.get('results', {})
+                    transcripts = results.get('transcripts', [])
+                    
+                    if transcripts:
+                        transcription_text = transcripts[0].get('transcript', '')
+                        if transcription_text.strip():
+                            combined_texts.append(transcription_text.strip())
+                            logger.info("Added transcription from upload_id %s (job %s), length: %d", 
+                                      upload_id, child_job.job_id, len(transcription_text))
+                    
+                except Exception as e:
+                    logger.error("Failed to get transcription for upload_id %s (job %s): %s", upload_id, child_job.job_id, e)
+                    # 完了済みジョブでも取得に失敗した場合は警告のみ出して続行
+                    continue
+            else:
+                failed_jobs += 1
+                logger.warning("No successful transcribe job found for upload_id: %s", upload_id)
+        
+        logger.info("Processed %d successful and %d failed transcribe jobs in original upload_ids order", successful_jobs, failed_jobs)
+        
+        if not combined_texts:
+            raise ValueError("No valid transcription texts found from successful jobs")
+        
+        # テキストを結合（改行で区切る）
+        combined_transcription = "\n\n".join(combined_texts)
+        logger.info("Combined %d transcription texts in original order, total length: %d", 
+                   len(combined_texts), len(combined_transcription))
+        
+        return combined_transcription

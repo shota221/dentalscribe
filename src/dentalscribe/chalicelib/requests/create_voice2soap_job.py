@@ -6,13 +6,22 @@ class CreateVoice2SoapJobSchema(BaseSchema):
         "$schema": "http://json-schema.org/draft-07/schema",
         "type": "object",
         "anyOf": [
-            {"required": ["upload_id"]},
+            {"required": ["upload_ids"]},
+            {"required": ["upload_id"]},  # 後方互換性のため一旦残す
             {"required": ["source_s3_key"]}
         ],
         "properties": {
+            "upload_ids": {
+                "type": "array",
+                "items": {
+                    "type": "string"
+                },
+                "minItems": 1,
+                "description": "Array of Upload IDs from storage service"
+            },
             "upload_id": {
                 "type": "string",
-                "description": "Upload ID from storage service"
+                "description": "Single Upload ID from storage service (deprecated, use upload_ids)"
             },
             "source_s3_key": {
                 "type": "string",
