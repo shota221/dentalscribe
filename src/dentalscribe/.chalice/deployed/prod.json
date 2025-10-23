@@ -1,0 +1,78 @@
+{
+  "resources": [
+    {
+      "name": "on_s3_transcribe_destination_object_created_role",
+      "resource_type": "iam_role",
+      "role_arn": "arn:aws:iam::170253932171:role/dentalscribe-prod-on_s3_transcribe_destination_object_created",
+      "role_name": "dentalscribe-prod-on_s3_transcribe_destination_object_created"
+    },
+    {
+      "name": "on_s3_transcribe_destination_object_created",
+      "resource_type": "lambda_function",
+      "lambda_arn": "arn:aws:lambda:ap-northeast-1:170253932171:function:dentalscribe-prod-on_s3_transcribe_destination_object_created"
+    },
+    {
+      "name": "on_s3_transcribe_destination_object_created-s3event",
+      "resource_type": "s3_event",
+      "bucket": "prod-aiyu-bucket",
+      "lambda_arn": "arn:aws:lambda:ap-northeast-1:170253932171:function:dentalscribe-prod-on_s3_transcribe_destination_object_created"
+    },
+    {
+      "name": "on_sqs_message_role",
+      "resource_type": "iam_role",
+      "role_arn": "arn:aws:iam::170253932171:role/dentalscribe-prod-on_sqs_message",
+      "role_name": "dentalscribe-prod-on_sqs_message"
+    },
+    {
+      "name": "on_sqs_message",
+      "resource_type": "lambda_function",
+      "lambda_arn": "arn:aws:lambda:ap-northeast-1:170253932171:function:dentalscribe-prod-on_sqs_message"
+    },
+    {
+      "name": "on_sqs_message-sqs-event-source",
+      "resource_type": "sqs_event",
+      "queue_arn": "arn:aws:sqs:ap-northeast-1:170253932171:prod-aiyu-job-standard",
+      "event_uuid": "6cf52ea4-a05b-4d6b-a3e7-5b05729b3ad4",
+      "queue": "prod-aiyu-job-standard",
+      "lambda_arn": "arn:aws:lambda:ap-northeast-1:170253932171:function:dentalscribe-prod-on_sqs_message"
+    },
+    {
+      "name": "on_sqs_failed_message_role",
+      "resource_type": "iam_role",
+      "role_arn": "arn:aws:iam::170253932171:role/dentalscribe-prod-on_sqs_failed_message",
+      "role_name": "dentalscribe-prod-on_sqs_failed_message"
+    },
+    {
+      "name": "on_sqs_failed_message",
+      "resource_type": "lambda_function",
+      "lambda_arn": "arn:aws:lambda:ap-northeast-1:170253932171:function:dentalscribe-prod-on_sqs_failed_message"
+    },
+    {
+      "name": "on_sqs_failed_message-sqs-event-source",
+      "resource_type": "sqs_event",
+      "queue_arn": "arn:aws:sqs:ap-northeast-1:170253932171:prod-aiyu-job-failed",
+      "event_uuid": "0128dfc8-16e5-4132-8962-f8de724b871d",
+      "queue": "prod-aiyu-job-failed",
+      "lambda_arn": "arn:aws:lambda:ap-northeast-1:170253932171:function:dentalscribe-prod-on_sqs_failed_message"
+    },
+    {
+      "name": "api_handler_role",
+      "resource_type": "iam_role",
+      "role_arn": "arn:aws:iam::170253932171:role/dentalscribe-prod-api_handler",
+      "role_name": "dentalscribe-prod-api_handler"
+    },
+    {
+      "name": "api_handler",
+      "resource_type": "lambda_function",
+      "lambda_arn": "arn:aws:lambda:ap-northeast-1:170253932171:function:dentalscribe-prod"
+    },
+    {
+      "name": "rest_api",
+      "resource_type": "rest_api",
+      "rest_api_id": "at0qw8ycrl",
+      "rest_api_url": "https://at0qw8ycrl.execute-api.ap-northeast-1.amazonaws.com/prod/"
+    }
+  ],
+  "schema_version": "2.0",
+  "backend": "api"
+}
