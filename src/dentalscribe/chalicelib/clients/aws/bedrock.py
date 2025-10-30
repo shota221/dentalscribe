@@ -45,7 +45,6 @@ class BedrockClient(BaseAWSClient):
         stop_sequences=None,
         max_tokens=8192,
         temperature=1,
-        top_p=0.999,
     ) -> Tuple[str, int, int]:
         try:
             response = self.client.invoke_model(
@@ -58,7 +57,6 @@ class BedrockClient(BaseAWSClient):
                     stop_sequences,
                     max_tokens,
                     temperature,
-                    top_p,
                 ),
             )
 
@@ -73,6 +71,7 @@ class BedrockClient(BaseAWSClient):
             return text, input_tokens, output_tokens
 
         except Exception as e:
+            print(f"Error generating text: {str(e)}")
             raise BedrockError(message="Failed to generate text", details={"error": str(e)})
 
     def generate_embedding(self, text: str, dimensions=1024) -> Tuple[List[float], int]:
@@ -98,7 +97,6 @@ class BedrockClient(BaseAWSClient):
         stop_sequences=None,
         max_tokens=8192,
         temperature=1,
-        top_p=0.999,
     ):
         bedrock_response = self.client.invoke_model_with_response_stream(
             modelId=self.text_model_id,
@@ -108,7 +106,6 @@ class BedrockClient(BaseAWSClient):
                 stop_sequences,
                 max_tokens,
                 temperature,
-                top_p,
             ),
         )
 
@@ -121,16 +118,15 @@ class BedrockClient(BaseAWSClient):
         stop_sequences=None,
         max_tokens=1000,
         temperature=1,
-        top_p=0.999,
     ):
         if "claude" in model_id:
             return self.__generate_invoke_claude_model_body(
-                context, stop_sequences, max_tokens, temperature, top_p
+                context, stop_sequences, max_tokens, temperature
             )
 
         elif "titan" in model_id:
             return self.__generate_invoke_titan_model_body(
-                context, stop_sequences, max_tokens, temperature, top_p
+                context, stop_sequences, max_tokens, temperature
             )
 
     def __generate_invoke_claude_model_body(
@@ -139,7 +135,6 @@ class BedrockClient(BaseAWSClient):
         stop_sequences=None,
         max_tokens=1000,
         temperature=1,
-        top_p=0.999,
     ):
         messages = []
 
@@ -156,7 +151,6 @@ class BedrockClient(BaseAWSClient):
             "max_tokens": max_tokens,
             "messages": messages,
             "temperature": temperature,
-            "top_p": top_p,
         }
 
         if stop_sequences:
@@ -172,7 +166,6 @@ class BedrockClient(BaseAWSClient):
         stop_sequences=None,
         max_tokens=1000,
         temperature=1,
-        top_p=0.999,
     ):
         input_text = "User: "
 
@@ -187,7 +180,6 @@ class BedrockClient(BaseAWSClient):
             "textGenerationConfig": {
                 "maxTokenCount": max_tokens,
                 "temperature": temperature,
-                "topP": top_p,
             },
         }
 

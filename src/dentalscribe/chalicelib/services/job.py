@@ -3,6 +3,7 @@ import uuid
 import logging
 import os
 import time
+import random
 from chalicelib.clients.aws.s3 import S3Client
 from chalicelib.clients.aws.sqs import SQSClient
 from chalicelib.clients.aws.transcribe import TranscribeClient
@@ -46,6 +47,15 @@ class JobService:
         
         if job.job_type != JobType.VOICE_TO_SOAP:
             raise ValidationError("Job is not a voice2soap job")
+
+        # 子ジョブ（Transcribeジョブ）の詳細を取得
+        child_jobs = self.job_repository.find_by_parent_job_id(job_id, JobType.TRANSCRIBE)
+        all_transcribe_finished = all(j.job_status in [JobStatus.COMPLETED, JobStatus.FAILED] for j in child_jobs) and len(child_jobs) > 0
+        # parent_job_idがjob_idのGENERATE_SOAPジョブが存在するか
+        generate_soap_jobs = self.job_repository.find_by_parent_job_id(job_id, JobType.GENERATE_SOAP)
+        if all_transcribe_finished and not generate_soap_jobs:
+            logger.info(f"All transcribe jobs finished (completed/failed) and no generate_soap job found for parent {job_id}. Starting SOAP generation.")
+            self._start_soap_generation(job_id)
 
         # 基本的なステータス情報
         response_data = {
@@ -222,6 +232,8 @@ class JobService:
         else:
             raise ValidationError("Invalid S3 key format")
 
+        time.sleep(random.random())
+
         job = self.job_repository.find(job_id)
 
         if not job or job.job_type != JobType.TRANSCRIBE:
@@ -249,28 +261,15 @@ class JobService:
             if total_finished_jobs >= expected_transcribe_jobs:
                 logger.info("All transcribe jobs finished (completed: %d, failed: %d) for parent: %s", 
                            parent_job.completed_child_jobs, parent_job.failed_child_jobs, parent_job.job_id)
-                
-                # ラグを考慮して1000ミリ秒待機してから再チェック
-                time.sleep(1.0)
-                
-                # 親ジョブの最新状態を再取得
-                parent_job_refreshed = self.job_repository.find(parent_job.job_id)
-                if parent_job_refreshed:
-                    logger.info("After refresh - parent %s: completed=%d, failed=%d", 
-                               parent_job_refreshed.job_id, parent_job_refreshed.completed_child_jobs, 
-                               parent_job_refreshed.failed_child_jobs)
-                    
-                    # 成功したTranscribeジョブが1つ以上ある場合のみSOAP生成を開始
-                    if parent_job_refreshed.completed_child_jobs > 0:
-                        logger.info("Starting SOAP generation with %d successful transcriptions", parent_job_refreshed.completed_child_jobs)
-                        self._start_soap_generation(parent_job_refreshed.job_id)
-                    else:
-                        logger.error("All transcribe jobs failed for parent: %s", parent_job_refreshed.job_id)
-                        parent_job_refreshed.job_status = JobStatus.FAILED
-                        parent_job_refreshed.error = "All transcribe jobs failed"
-                        parent_job_refreshed.save()
+                # SOAP生成開始判定のみ残す
+                if parent_job.completed_child_jobs > 0:
+                    logger.info("Starting SOAP generation with %d successful transcriptions", parent_job.completed_child_jobs)
+                    self._start_soap_generation(parent_job.job_id)
                 else:
-                    logger.error("Failed to refresh parent job: %s", parent_job.job_id)
+                    logger.error("All transcribe jobs failed for parent: %s", parent_job.job_id)
+                    parent_job.job_status = JobStatus.FAILED
+                    parent_job.error = "All transcribe jobs failed"
+                    parent_job.save()
             else:
                 logger.info("Waiting for remaining transcribe jobs to complete for parent: %s (need %d more)", 
                            parent_job.job_id, expected_transcribe_jobs - total_finished_jobs)
@@ -342,33 +341,19 @@ class JobService:
             if job.job_type == JobType.TRANSCRIBE:
                 expected_transcribe_jobs = parent_job.total_child_jobs  # GENERATE_SOAPジョブは含まない
                 total_finished_jobs = parent_job.completed_child_jobs + parent_job.failed_child_jobs
-                
                 if total_finished_jobs >= expected_transcribe_jobs:
                     logger.info("All transcribe jobs finished (completed: %d, failed: %d) for parent: %s", 
                                parent_job.completed_child_jobs, parent_job.failed_child_jobs, parent_job.job_id)
-                    
-                    # ラグを考慮して1000ミリ秒待機してから再チェック
-                    time.sleep(1.0)
-                    
-                    # 親ジョブの最新状態を再取得
-                    parent_job_refreshed = self.job_repository.find(parent_job.job_id)
-                    if parent_job_refreshed:
-                        logger.info("After refresh - parent %s: completed=%d, failed=%d", 
-                                   parent_job_refreshed.job_id, parent_job_refreshed.completed_child_jobs, 
-                                   parent_job_refreshed.failed_child_jobs)
-                        
-                        # 成功したTranscribeジョブが1つ以上ある場合のみSOAP生成を開始
-                        if parent_job_refreshed.completed_child_jobs > 0:
-                            logger.info("Starting SOAP generation with %d successful transcriptions (despite %d failures)", 
-                                       parent_job_refreshed.completed_child_jobs, parent_job_refreshed.failed_child_jobs)
-                            self._start_soap_generation(parent_job_refreshed.job_id)
-                        else:
-                            logger.error("All transcribe jobs failed for parent: %s", parent_job_refreshed.job_id)
-                            parent_job_refreshed.job_status = JobStatus.FAILED
-                            parent_job_refreshed.error = "All transcribe jobs failed"
-                            parent_job_refreshed.save()
+                    # SOAP生成開始判定のみ残す
+                    if parent_job.completed_child_jobs > 0:
+                        logger.info("Starting SOAP generation with %d successful transcriptions (despite %d failures)", 
+                                   parent_job.completed_child_jobs, parent_job.failed_child_jobs)
+                        self._start_soap_generation(parent_job.job_id)
                     else:
-                        logger.error("Failed to refresh parent job: %s", parent_job.job_id)
+                        logger.error("All transcribe jobs failed for parent: %s", parent_job.job_id)
+                        parent_job.job_status = JobStatus.FAILED
+                        parent_job.error = "All transcribe jobs failed"
+                        parent_job.save()
                 else:
                     logger.info("Waiting for remaining transcribe jobs to complete for parent: %s (need %d more)", 
                                parent_job.job_id, expected_transcribe_jobs - total_finished_jobs)

@@ -55,3 +55,41 @@ docker compose up -d --force-recreate
 ./deploy.sh {dev|stg|prod}
 ```
 
+## CloudWatch監視設定 (Terraform)
+
+CloudWatchアラートを設定してシステムの健全性を監視できます。
+
+### 初期設定
+
+```bash
+cd terraform
+
+# 設定ファイルを作成
+cp terraform.tfvars.example terraform.tfvars
+
+# 環境に合わせて編集（必ずalarm_emailを変更）
+vim terraform.tfvars
+```
+
+### デプロイ
+
+```bash
+# Terraform初期化
+terraform init
+
+# プラン確認
+terraform plan
+
+# 適用
+terraform apply
+```
+
+詳細は [terraform/README.md](./terraform/README.md) を参照してください。
+
+### 監視項目
+- Lambda関数のエラー、スロットリング、実行時間
+- DynamoDBのスロットル
+- SQSキューの滞留、Dead Letter Queue
+- API Gatewayのエラー、レイテンシ
+- Transcribe/Bedrockのカスタムメトリクス
+

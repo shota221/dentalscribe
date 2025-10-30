@@ -1,0 +1,14 @@
+# Development Environment
+environment            = "dev"
+lambda_function_name   = "dentalscribe-dev"
+dynamodb_table_name    = "dentalscribe-dev-jobs"
+sqs_queue_name         = "dentalscribe-dev-job-queue"
+sqs_dlq_name           = "dentalscribe-dev-job-queue-dlq"
+s3_bucket_name         = "dentalscribe-dev-storage"
+alarm_email            = "your-email@example.com"
+
+# Threshold settings (adjust as needed)
+lambda_error_threshold    = 5
+lambda_duration_threshold = 30000
+sqs_age_threshold         = 600
+dlq_message_threshold     = 1

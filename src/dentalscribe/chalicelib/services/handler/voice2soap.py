@@ -55,14 +55,13 @@ class Voice2SoapJobHandler:
         try:
             # 親ジョブの情報から複数のTranscribe結果を取得
             combined_transcription = self._combine_transcribe_results(parent_job_id)
-            
+            soap_data = None
             if not combined_transcription.strip():
-                raise ValueError("Empty combined transcription text")
-                
-            logger.info("Combined transcription text length: %d", len(combined_transcription))
-            
-            # BedrockでSOAP形式に変換
-            soap_data = self._generate_soap_with_bedrock(combined_transcription)
+                logger.warning("Combined transcription text is empty. Returning empty SOAP data.")
+                soap_data = {"subjective": "情報なし", "objective": "情報なし", "assessment": "情報なし", "plan": "情報なし"}
+            else:
+                # BedrockでSOAP形式に変換
+                soap_data = self._generate_soap_with_bedrock(combined_transcription)
             
             # ジョブ結果を更新
             job.result = json.dumps(soap_data)
@@ -108,7 +107,6 @@ class Voice2SoapJobHandler:
                 context=context,
                 max_tokens=4096,
                 temperature=0.1,  # SOAP形式なので一貫性を重視
-                top_p=0.9
             )
             
             logger.info("Bedrock generation completed. Input tokens: %d, Output tokens: %d", 
@@ -234,9 +232,6 @@ class Voice2SoapJobHandler:
                 logger.warning("No successful transcribe job found for upload_id: %s", upload_id)
         
         logger.info("Processed %d successful and %d failed transcribe jobs in original upload_ids order", successful_jobs, failed_jobs)
-        
-        if not combined_texts:
-            raise ValueError("No valid transcription texts found from successful jobs")
         
         # テキストを結合（改行で区切る）
         combined_transcription = "\n\n".join(combined_texts)
